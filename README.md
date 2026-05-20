@@ -20,6 +20,6 @@ Installation: save and rename KnownMastodon to IdnoPlugins/Mastodon
 
 Activate under Site Configurations—Plugins
 
-Add an account under Account Settings–Mastodon
+Add an account under Account Settings–Mastodon (using the fully automated OAuth callback flow).
 
-Credits: KnownMastodon is using the Mastodon class from https://github.com/TheCodingCompany/MastodonOAuthPHP
+Credits: KnownMastodon is using the Mastodon class from https://github.com/TheCodingCompany/MastodonOAuthPHP, with local modifications to support fully automated redirect callbacks.

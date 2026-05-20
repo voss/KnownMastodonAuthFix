@@ -131,7 +131,7 @@ trait oAuth
             //Return the Authorization URL
             return "https://{$this->mastodon_api_url}/oauth/authorize/?".http_build_query(array(
                     "response_type"    => "code",
-                    "redirect_uri"     => "urn:ietf:wg:oauth:2.0:oob",
+                    "redirect_uri"     => $this->app_config["redirect_uris"],
                     "scope"            => "read write",
                     "client_id"        => $this->credentials["client_id"]
                 ));
@@ -170,7 +170,7 @@ trait oAuth
                 "oauth/token",
                 array(
                     "grant_type"    => "authorization_code",
-                    "redirect_uri"  => "urn:ietf:wg:oauth:2.0:oob",
+                    "redirect_uri"  => $this->app_config["redirect_uris"],
                     "client_id"     => $this->credentials["client_id"],
                     "client_secret" => $this->credentials["client_secret"],
                     "code"          => $auth_code

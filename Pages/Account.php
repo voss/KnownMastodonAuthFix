@@ -62,7 +62,7 @@ namespace IdnoPlugins\Mastodon\Pages {
                     \Idno\Core\Idno::site()->config()->mastodon = array('mastodon' => true);
                     \Idno\Core\Idno::site()->config()->save();
                 }
-                if (empty(\Idno\Core\Idno::site()->config()->mastodon[$server])) {
+                if (empty(\Idno\Core\Idno::site()->config()->mastodon[$server]) || empty(\Idno\Core\Idno::site()->config()->config['mastodon'][$server][0]['client_id'])) {
 
                     $mastodon = \Idno\Core\Idno::site()->plugins()->get('Mastodon');
                     $mastodonApi = $mastodon->connect($server);

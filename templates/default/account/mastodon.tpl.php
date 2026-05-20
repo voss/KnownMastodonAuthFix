@@ -28,7 +28,22 @@ $user = Idno::site()->session()->currentUser();
         $account = $user->mastodon[$_SESSION['mastodon_instance']];
         $server = $account['server'];
         $config = \Idno\Core\Idno::site()->config()->config['mastodon'][$server];
-        $authUrl = urldecode(\Idno\Core\Idno::site()->config()->config['mastodon'][$server][0]['auth_url']);
+        $mastodon = \Idno\Core\Idno::site()->plugins()->get('Mastodon');
+        $mastodonApi = $mastodon->connect($server);
+        $mastodonApi->setCredentials([
+            'client_id' => \Idno\Core\Idno::site()->config()->config['mastodon'][$server][0]['client_id'],
+            'client_secret' => \Idno\Core\Idno::site()->config()->config['mastodon'][$server][0]['client_secret']
+        ]);
+        $authUrl = $mastodonApi->getAuthUrl();
+
+        if (empty($authUrl)) {
+            $instance = $_SESSION['mastodon_instance'];
+            unset($_SESSION['mastodon_instance']);
+            unset($user->mastodon[$instance]);
+            $user->save();
+            header('Location: ' . $baseURL . 'account/mastodon/');
+            exit;
+        }
         ?>
         <p><?= \Idno\Core\Idno::site()->language()->_('2. Authorize with %s', [$server]) ?></p>
         <div class="control-group">

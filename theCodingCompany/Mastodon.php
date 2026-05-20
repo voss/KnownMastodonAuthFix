@@ -35,7 +35,12 @@ class Mastodon
     /**
      * Construct new Mastodon class
      */
-    public function __construct($domainname = "mastodon.social") {
+    public function __construct($callback_url = null, $domainname = "mastodon.social") {
+
+        //Set the redirect URI
+        if (!empty($callback_url)) {
+            $this->app_config["redirect_uris"] = $callback_url;
+        }
 
         //Set the domain name to use
         $this->setMastodonDomain($domainname);
