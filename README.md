@@ -5,6 +5,8 @@ Syndicate your posts to Mastodon instances
 - Share Status, Articles, Images & Bookmarks
 - Handles content warnings : use || as separator between spoiler text and status. Text will be split there.
 - A photo with #nsfw in title will set to sensitive and one has to click to see it in Mastodon.
+- Supports fully automated OAuth callback flows without requiring manual out-of-band (OOB) code entry.
+- Features self-healing OAuth registration: automatically resets and re-registers app credentials if they become stale or fail.
 
 Admin page shows all Mastodon servers connected by the users.
 
