@@ -570,19 +570,20 @@ namespace IdnoPlugins\Mastodon {
             if (!\Idno\Core\Idno::site()->session()->currentUser()) {
                 return false;
             }
-            if (!empty(\Idno\Core\Idno::site()->session()->currentUser()->mastodon)) {
-                if (is_array(\Idno\Core\Idno::site()->session()->currentUser()->mastodon)) {
-                    $accounts = 0;
-                    foreach (\Idno\Core\Idno::site()->session()->currentUser()->mastodon as $server => $value) {
-                        if (!empty($server['bearer'])) {
-                            $accounts++;
-                        }
-                    }
-                    if ($accounts > 0) {
+            $mastodon = \Idno\Core\Idno::site()->session()->currentUser()->mastodon;
+            if (!empty($mastodon)) {
+                if (is_array($mastodon)) {
+                    // Check for old format
+                    if (!empty($mastodon['bearer'])) {
                         return true;
                     }
+                    // Check for new format
+                    foreach ($mastodon as $username => $details) {
+                        if (is_array($details) && !empty($details['bearer'])) {
+                            return true;
+                        }
+                    }
                 }
-                return true;
             }
             return false;
         }

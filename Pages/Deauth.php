@@ -20,9 +20,19 @@
                         if ($remove = $this->getInput('remove')) {
                             \Idno\Core\Idno::site()->logging()->log("Mastodon: DEBUG account to delete: " . $remove . " /DEBUG");
                             if (is_array($user->mastodon)) {
-                                if (array_key_exists($remove, $user->mastodon)) {
-                                    unset($user->mastodon[$remove]);
+                                $mastodon = $user->mastodon;
+                                if (array_key_exists($remove, $mastodon)) {
+                                    unset($mastodon[$remove]);
+                                } else {
+                                    // Check for old format
+                                    if (isset($mastodon['username']) && isset($mastodon['server'])) {
+                                        $handle = $mastodon['username'] . '@' . $mastodon['server'];
+                                        if ($handle == $remove) {
+                                            $mastodon = array();
+                                        }
+                                    }
                                 }
+                                $user->mastodon = $mastodon;
                             } else {
                                 $user->mastodon = false;
                             }

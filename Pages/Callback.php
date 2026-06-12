@@ -27,7 +27,9 @@ namespace IdnoPlugins\Mastodon\Pages {
                     $testcreds = $mastodonAPI->getCredentials();
                     \Idno\Core\Idno::site()->logging()->log("Mastodon: DEBUG callback credentials " . $server . " " . var_export($testcreds, true) . " /DEBUG");
                     $token_info = $mastodonAPI->getAccessToken($token);
-                    $user->mastodon[$_server]['bearer'] = $token_info;
+                    $mastodon_config = $user->mastodon;
+                    $mastodon_config[$_server]['bearer'] = $token_info;
+                    $user->mastodon = $mastodon_config;
                     $user->save();
 
                     if (!empty($_SESSION['onboarding_passthrough'])) {

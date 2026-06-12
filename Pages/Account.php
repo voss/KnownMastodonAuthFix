@@ -30,22 +30,50 @@ namespace IdnoPlugins\Mastodon\Pages {
                 unset($_SESSION['mastodon_instance']);
                 $rm = $this->getInput('remove');
                 $user = \Idno\Core\Idno::site()->session()->currentUser();
-                unset($user->mastodon[$rm]); // wipes specific credentials
+                $mastodon = $user->mastodon;
+                if (is_array($mastodon)) {
+                    if (array_key_exists($rm, $mastodon)) {
+                        unset($mastodon[$rm]);
+                    } else {
+                        // Check for old format
+                        if (isset($mastodon['username']) && isset($mastodon['server'])) {
+                            $handle = $mastodon['username'] . '@' . $mastodon['server'];
+                            if ($handle == $rm) {
+                                $mastodon = array();
+                            }
+                        }
+                    }
+                    $user->mastodon = $mastodon;
+                }
                 $user->save();
                 $instance = explode('@', $rm);
-                \Idno\Core\Idno::site()->session()->addMessage(\Idno\Core\Idno::site()->language()->_('%s instance settings have been removed from your account.', [$instance[1]]));
+                \Idno\Core\Idno::site()->session()->addMessage(\Idno\Core\Idno::site()->language()->_('%s instance settings have been removed from your account.', [$instance[1] ?? $instance[0]]));
                 $this->forward(\Idno\Core\Idno::site()->config()->getDisplayURL() . 'account/mastodon/');
             }
             if (($this->getInput('remove'))) {
                 $rm = $this->getInput('remove');
                 $user = \Idno\Core\Idno::site()->session()->currentUser();
                // $user->mastodon = array(); // wipes all credentials
-                unset($user->mastodon[$rm]); // wipes specific credentials
+                $mastodon = $user->mastodon;
+                if (is_array($mastodon)) {
+                    if (array_key_exists($rm, $mastodon)) {
+                        unset($mastodon[$rm]);
+                    } else {
+                        // Check for old format
+                        if (isset($mastodon['username']) && isset($mastodon['server'])) {
+                            $handle = $mastodon['username'] . '@' . $mastodon['server'];
+                            if ($handle == $rm) {
+                                $mastodon = array();
+                            }
+                        }
+                    }
+                    $user->mastodon = $mastodon;
+                }
                 $user->save();
                 $instance = explode('@', $rm);
                // \Idno\Core\site()->config->config['mastodon'] = array();
                // \Idno\Core\site()->config->save();
-                \Idno\Core\Idno::site()->session()->addMessage(\Idno\Core\Idno::site()->language()->_('%s instance settings have been removed from your account.', [$instance[1]]));
+                \Idno\Core\Idno::site()->session()->addMessage(\Idno\Core\Idno::site()->language()->_('%s instance settings have been removed from your account.', [$instance[1] ?? $instance[0]]));
                 $this->forward(\Idno\Core\Idno::site()->config()->getDisplayURL() . 'account/mastodon/');
             }
             if ($this->getInput('login') && $this->getInput('username')) {
@@ -53,7 +81,12 @@ namespace IdnoPlugins\Mastodon\Pages {
                 $tmp = explode('@', $this->getInput('username'));
                 $login = $this->getInput('login');
                 $server = $tmp[1];
-                $user->mastodon[$this->getInput('username')] = array('server' => $server, 'login' => $login, 'username' => $tmp[0], 'bearer' => '');
+                $mastodon = $user->mastodon;
+                if (!is_array($mastodon)) {
+                    $mastodon = array();
+                }
+                $mastodon[$this->getInput('username')] = array('server' => $server, 'login' => $login, 'username' => $tmp[0], 'bearer' => '');
+                $user->mastodon = $mastodon;
                 $user->save();
 
                 $_SESSION['mastodon_instance'] = $this->getInput('username');
