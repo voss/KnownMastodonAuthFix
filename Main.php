@@ -415,9 +415,34 @@ namespace IdnoPlugins\Mastodon {
          */
         function truncate($status, $format = false, $permalink = false, $shortlink = false, $length = 500) {
             $status = trim($status);
+            $truncated = false;
+            //disabling permashortlink for now
+            $shortlink = false;
+            if ($permalink) {
+                $permalink = ": " . $permalink;
+                $length = $length - strlen($permalink);
+            }
+            if ($shortlink) {
+                $shortlink = " " . $shortlink;
+                $length = $length - strlen($shortlink);
+            }
+            $hellip = mb_convert_encoding('&hellip; ', 'UTF-8', 'HTML-ENTITIES');
+            $length = $length - strlen($hellip);
 
-            if (mb_strlen($status) > $length) {
-                $status = mb_substr($status, 0, $length);
+            if (strlen($status) > $length) {
+                $status = wordwrap($status);
+                $string = explode("\n", $status, 2);
+                $status = $string[0] . $hellip;
+                $status = $status . $permalink;
+                $truncated = true;
+            }
+            // $status = $status . $permalink . $shortlink;
+            //add $permalink to bookmark if not truncated
+            if ($format === 'bookmark' && ($truncated == false)) {
+                $status = $status . $permalink;
+            }
+            if ($format === 'article' && ($truncated == false)) {
+                $status = $status . $permalink;
             }
 
             return $status;

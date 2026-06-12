@@ -3,7 +3,6 @@
 Syndicate your posts to Mastodon instances
 
 - Share Status, Articles, Images & Bookmarks
-- Posts are automatically truncated to 500 characters to fit Mastodon limits (without appending permalinks, shortlinks, or ellipses to allow maximum characters).
 - Handles content warnings : use || as separator between spoiler text and status. Text will be split there.
 - A photo with #nsfw in title will set to sensitive and one has to click to see it in Mastodon.
 - Supports fully automated OAuth callback flows without requiring manual out-of-band (OOB) code entry.
