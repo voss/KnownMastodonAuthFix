@@ -415,6 +415,14 @@ namespace IdnoPlugins\Mastodon {
          */
         function truncate($status, $format = false, $permalink = false, $shortlink = false, $length = 500) {
             $status = trim($status);
+
+            if ($format === 'note') {
+                if (mb_strlen($status) > $length) {
+                    $status = mb_substr($status, 0, $length);
+                }
+                return $status;
+            }
+
             $truncated = false;
             //disabling permashortlink for now
             $shortlink = false;

@@ -3,6 +3,7 @@
 Syndicate your posts to Mastodon instances
 
 - Share Status, Articles, Images & Bookmarks
+- Status messages (notes) use the full 500 character limit without appending permalinks or ellipses. Other post types (like articles) will leave space for a permalink back to the original entry.
 - Handles content warnings : use || as separator between spoiler text and status. Text will be split there.
 - A photo with #nsfw in title will set to sensitive and one has to click to see it in Mastodon.
 - Supports fully automated OAuth callback flows without requiring manual out-of-band (OOB) code entry.
