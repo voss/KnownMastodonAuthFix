@@ -201,9 +201,9 @@ namespace IdnoPlugins\Mastodon {
                             if ($bytes = \Idno\Entities\File::getFileDataFromAttachment($attachment)) {
                                 $filename = tempnam(sys_get_temp_dir(), 'knownmastodon');
                                 file_put_contents($filename, $bytes);
-                                $params['description'] = $status;
+                                $params['description'] = !empty($attachment['name']) ? $attachment['name'] : $status;
                                 $params['file'] = $filename;
-                                $params['filename'] = basename($filename);
+                                $params['filename'] = !empty($attachment['filename']) ? $attachment['filename'] : basename($filename);
                                 $params['mime-type'] = $attachment['mime-type'];
                                 $response = $this->postMedia($params, $username);
                                 $content = json_decode($response['content']);
