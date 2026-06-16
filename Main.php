@@ -101,6 +101,31 @@ namespace IdnoPlugins\Mastodon {
                     $statuses = array('status' => $status,
                         'sensitive' => $nfsw);
 
+                    $media_ids = array();
+                    $attachments = $object->getAttachments();
+                    if (!empty($attachments)) {
+                        foreach ($attachments as $attachment) {
+                            if ($bytes = \Idno\Entities\File::getFileDataFromAttachment($attachment)) {
+                                $filename = tempnam(sys_get_temp_dir(), 'knownmastodon');
+                                file_put_contents($filename, $bytes);
+                                $params['description'] = !empty($attachment['name']) ? $attachment['name'] : $status;
+                                $params['file'] = $filename;
+                                $params['filename'] = !empty($attachment['filename']) ? $attachment['filename'] : basename($filename);
+                                $params['mime-type'] = $attachment['mime-type'];
+                                $response = $this->postMedia($params, $username);
+                                $content = json_decode($response['content']);
+
+                                if (!empty($content->id)) {
+                                    $media_ids[] = $content->id;
+                                } else {
+                                    \Idno\Core\Idno::site()->logging()->log("Mastodon Media Debug : we haz no response from mastodon " . $server);
+                                }
+                            }
+                        }
+                    }
+                    if (!empty($media_ids)) {
+                        $statuses['media_ids'] = $media_ids;
+                    }
 
                         // Find any Mastodon status IDs in case we need to mark this as a reply to them
                         $inreplytourls = array_merge((array) $object->inreplyto, (array) $object->syndicatedto);
