@@ -53,23 +53,13 @@ namespace IdnoPlugins\Mastodon {
 
         function registerEventHooks() {
 
-            \Idno\Core\Idno::site()->events()->addListener('page/get', function (\Idno\Core\Event $event) {
-                $this->registerAccounts();
-            });
-            \Idno\Core\Idno::site()->events()->addListener('page/post', function (\Idno\Core\Event $event) {
-                $this->registerAccounts();
-            });
-
-            \Idno\Core\Idno::site()->events()->addListener('plugins/loaded', function () {
-                \Idno\Core\Idno::site()->syndication()->registerService('mastodon', function () {
-                    if ($this->hasMastodon()) {
-                        return true;
-                    }
-                    return false;
-                }, true);
-            });
-
-            //array('note', 'article', 'image', 'media', 'rsvp', 'bookmark', 'like', 'share'));
+            \Idno\Core\Idno::site()->syndication()->registerService('mastodon', function () {
+                if ($this->hasMastodon()) {
+                    $this->registerAccounts();
+                    return true;
+                }
+                return false;
+            }, array('note', 'article', 'image', 'media', 'rsvp', 'bookmark', 'like', 'share', 'checkin', 'event', 'poll', 'Poll', 'audio'));
 
             //\Idno\Core\Idno::site()->addEventHook('user/auth/success', function (\Idno\Core\Event $event) {
             \Idno\Core\Idno::site()->events()->addListener('user/auth/success', function (\Idno\Core\Event $event) {
@@ -492,6 +482,7 @@ namespace IdnoPlugins\Mastodon {
             \Idno\Core\Idno::site()->events()->addListener('post/checkin/mastodon', $article_handler);
             \Idno\Core\Idno::site()->events()->addListener('post/event/mastodon', $article_handler);
             \Idno\Core\Idno::site()->events()->addListener('post/poll/mastodon', $poll_handler);
+            \Idno\Core\Idno::site()->events()->addListener('post/Poll/mastodon', $poll_handler);
             \Idno\Core\Idno::site()->events()->addListener('post/media/mastodon', function (\Idno\Core\Event $event) use ($image_handler) {
                 return $image_handler($event);
             });
