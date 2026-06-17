@@ -38,7 +38,7 @@ namespace IdnoPlugins\Mastodon {
             \Idno\Core\Idno::site()->syndication()->registerService('mastodon', function () {
 
                 return $this->hasMastodon();
-            }, array('article', 'note', 'image', 'bookmark'));
+            }, array('article', 'note', 'image', 'bookmark', 'poll', 'media', 'rsvp', 'checkin', 'event'));
 
             //array('note', 'article', 'image', 'media', 'rsvp', 'bookmark', 'like', 'share'));
 
@@ -79,9 +79,9 @@ namespace IdnoPlugins\Mastodon {
                     }
                     $tags = $object->getTags();
                     $tags = array_map('strtolower', $tags);
-                    $nfsw = false;
+                    $nsfw = false;
                     if (!empty($tags) && in_array("#nsfw", $tags)) {
-                        $nfsw = true;
+                        $nsfw = true;
                     }
 
                     $status_full = trim($object->getDescription());
@@ -99,7 +99,7 @@ namespace IdnoPlugins\Mastodon {
                     $status = $this->truncate($status,$object_type, $permalink, $permashortlink);
 
                     $statuses = array('status' => $status,
-                        'sensitive' => $nfsw);
+                        'sensitive' => $nsfw);
 
                     $media_ids = array();
                     $attachments = $object->getAttachments();
@@ -173,7 +173,7 @@ namespace IdnoPlugins\Mastodon {
 
             // Push "images" to a Mastodon instance
             //\Idno\Core\Idno::site()->addEventHook('post/image/mastodon', function (\Idno\Core\Event $event) {
-            \Idno\Core\Idno::site()->events()->addListener('post/image/mastodon', function (\Idno\Core\Event $event) {
+            $image_handler = function (\Idno\Core\Event $event) {
                 if ($this->hasMastodon()) {
                     $eventdata = $event->data();
                     $object = $eventdata['object'];
@@ -290,7 +290,8 @@ namespace IdnoPlugins\Mastodon {
                 } else {
                     \Idno\Core\Idno::site()->logging()->log("Mastodon Media Debug : we haz no Mastodon");
                 }
-            });
+            };
+            \Idno\Core\Idno::site()->events()->addListener('post/image/mastodon', $image_handler);
 
 
             // Function for articles, RSVPs etc
@@ -301,8 +302,12 @@ namespace IdnoPlugins\Mastodon {
                         $username = $eventdata['syndication_account'];
                         \Idno\Core\Idno::site()->logging()->log("Mastodon username: " . $username);
                         $mastodonAPI = $this->connect($username);
+                        $screenName = $eventdata['syndication_account'];
                     } else {
                         $mastodonAPI = $this->connect();
+                        $screenName = isset(\Idno\Core\Idno::site()->session()->currentUser()->mastodon['screen_name'])
+                                    ? \Idno\Core\Idno::site()->session()->currentUser()->mastodon['screen_name']
+                                    : false;
                     }
                     $object_type = $eventdata['object_type'];
                     $object = $eventdata['object'];
@@ -315,8 +320,16 @@ namespace IdnoPlugins\Mastodon {
 
                     $status = html_entity_decode($status);
 
+                    $tags = $object->getTags();
+                    $tags = array_map('strtolower', $tags);
+                    $nsfw = false;
+                    if (!empty($tags) && in_array("#nsfw", $tags)) {
+                        $nsfw = true;
+                    }
+
                     $status = $this->truncate($status, $object_type, $permalink, $permashortlink);
-                    $statuses = array('status' => $status);
+                    $statuses = array('status' => $status,
+                        'sensitive' => $nsfw);
 
                         // Find any Mastodon status IDs in case we need to mark this as a reply to them
                         $inreplytourls = array_merge((array) $object->inreplyto, (array) $object->syndicatedto);
@@ -360,11 +373,113 @@ namespace IdnoPlugins\Mastodon {
                 }
             };
 
+            $poll_handler = function (\Idno\Core\Event $event) {
+                if ($this->hasMastodon()) {
+                    $eventdata = $event->data();
+                    if (!empty($eventdata['syndication_account'])) {
+                        $username = $eventdata['syndication_account'];
+                        $mastodonAPI = $this->connect($username);
+                        $screenName = $eventdata['syndication_account'];
+                    } else {
+                        $mastodonAPI = $this->connect();
+                        $screenName = isset(\Idno\Core\Idno::site()->session()->currentUser()->mastodon['screen_name'])
+                                    ? \Idno\Core\Idno::site()->session()->currentUser()->mastodon['screen_name']
+                                    : false;
+                    }
+                    $object_type = $eventdata['object_type'];
+                    $object = $eventdata['object'];
+                    $server = $this->getServer();
+                    $status = $object->getDescription();
+                    if (empty($status)) {
+                        $status = $object->getTitle();
+                    }
+                    $status = html_entity_decode($status);
+                    // Permalink will be included if the status message is truncated
+                    $permalink = $object->getSyndicationURL();
+                    // Add link to original post, if IndieWeb references have been requested
+                    $permashortlink = \Idno\Core\Idno::site()->config()->indieweb_reference ? $object->getShortURL() : false;
+
+                    $tags = $object->getTags();
+                    $tags = array_map('strtolower', $tags);
+                    $nsfw = false;
+                    if (!empty($tags) && in_array("#nsfw", $tags)) {
+                        $nsfw = true;
+                    }
+
+                    $status = $this->truncate($status, $object_type, $permalink, $permashortlink);
+
+                    $options = $object->options;
+                    if (empty($options) && !empty($object->poll_options)) {
+                        $options = $object->poll_options;
+                    }
+
+                    $poll = array(
+                        'options' => $options,
+                        'expires_in' => 86400, // 1 day default
+                    );
+
+                    if (!empty($object->end_time)) {
+                        $poll['expires_in'] = $object->end_time - time();
+                        if ($poll['expires_in'] < 300) { $poll['expires_in'] = 300; } // Min 5 mins
+                    }
+                    if (!empty($object->multiple_choice)) {
+                        $poll['multiple'] = true;
+                    }
+
+                    $statuses = array('status' => $status,
+                        'sensitive' => $nsfw,
+                        'poll' => $poll);
+
+                        // Find any Mastodon status IDs in case we need to mark this as a reply to them
+                        $inreplytourls = array_merge((array) $object->inreplyto, (array) $object->syndicatedto);
+                        if ($inreplyto = $this->findMastoStatus($inreplytourls, $screenName)) {
+                            $statuses['in_reply_to_id'] = $inreplyto['status_id'];
+
+                            \Idno\Core\Idno::site()->logging()->log("Mastodon post to reply to: " . var_export($inreplyto, true));
+
+                            // if inreplytoname is not in the status, and is not this user's name, then prepend it to the status
+                            $replyName = $inreplyto['screen_name'];
+                            if ($replyName
+                                    && mb_strtolower($screenName) !== mb_strtolower($replyName)
+                                    && mb_stristr($status, '@'.$replyName) === false) {
+                                $statuses['status'] = '@' . $replyName . ' ' . $status;
+                            }
+                        }
+
+                        try {
+                            $res = $this->postStatus($statuses, $username);
+                            $response = json_decode($res['content']);
+                        } catch (\Exception $e) {
+                            \Idno\Core\Idno::site()->logging()->log($e);
+                        }
+                    \Idno\Core\Idno::site()->logging()->log("Mastodon posting Response: " . var_export($response, true));
+                    if (!empty($response)) {
+                        if (!empty($response->id)) {
+                            $mastodon_user = $response->account->username . "@" . $server;
+                            $object->setPosseLink('mastodon', $response->url, $username, $response->id, $username);
+                            \Idno\Core\Idno::site()->logging()->log("Posted to Mastodon: " . var_export($response->url, true));
+                            $object->save();
+                        } else {
+                            \Idno\Core\Idno::site()->logging()->log("Nothing was posted to Mastodon: " . var_export($response, true));
+                        }
+                    }
+                }
+            };
+
             // Push "articles" and "rsvps" to Mastodon
             //\Idno\Core\Idno::site()->addEventHook('post/article/mastodon', $article_handler);
             \Idno\Core\Idno::site()->events()->addListener('post/article/mastodon', $article_handler);
             \Idno\Core\Idno::site()->events()->addListener('post/rsvp/mastodon', $article_handler);
             \Idno\Core\Idno::site()->events()->addListener('post/bookmark/mastodon', $article_handler);
+            \Idno\Core\Idno::site()->events()->addListener('post/checkin/mastodon', $article_handler);
+            \Idno\Core\Idno::site()->events()->addListener('post/event/mastodon', $article_handler);
+            \Idno\Core\Idno::site()->events()->addListener('post/poll/mastodon', $poll_handler);
+            \Idno\Core\Idno::site()->events()->addListener('post/media/mastodon', function (\Idno\Core\Event $event) use ($image_handler) {
+                return $image_handler($event);
+            });
+            \Idno\Core\Idno::site()->events()->addListener('post/audio/mastodon', function (\Idno\Core\Event $event) use ($image_handler) {
+                return $image_handler($event);
+            });
         }
 
         /**
@@ -383,13 +498,21 @@ namespace IdnoPlugins\Mastodon {
                     $mID = $mID . "&media_ids[]=".$id;
                 }
             }
+            $pOptions = "";
+            if (!empty($status['poll']['options'])) {
+                $options = $status['poll']['options'];
+                unset($status['poll']['options']);
+                foreach ($options as $option) {
+                    $pOptions = $pOptions . "&poll[options][]=" . urlencode($option);
+                }
+            }
             // split text at || for content warning
             $cwstatus = explode("||", $status['status'], 2);
             if (!empty($cwstatus[1])) {
                 $status['status'] = $cwstatus[1];
                 $status['spoiler_text'] = $cwstatus[0];
             }
-            $status = http_build_query($status).$mID;
+            $status = http_build_query($status).$mID.$pOptions;
 
             $server = $this->getServer();
             $credentials = $this->getCredentials($username);
