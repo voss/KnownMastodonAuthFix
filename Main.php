@@ -35,10 +35,26 @@ namespace IdnoPlugins\Mastodon {
         }
 
         function registerEventHooks() {
+
+            if ($this->hasMastodon()) {
+                $mastodon = \Idno\Core\Idno::site()->session()->currentUser()->mastodon;
+                if (is_array($mastodon)) {
+                    foreach($mastodon as $username => $details) {
+                        if (!in_array($username, ['bearer','server','username'])) {
+                            \Idno\Core\Idno::site()->syndication()->registerServiceAccount('mastodon', $username, $username);
+                        }
+                    }
+
+                    if (array_key_exists('bearer', $mastodon)) {
+                        \Idno\Core\Idno::site()->syndication()->registerServiceAccount('mastodon', $mastodon['username'] . "@" . $mastodon['server'], $mastodon['username'] . "@" . $mastodon['server']);
+                    }
+                }
+            }
+
             \Idno\Core\Idno::site()->syndication()->registerService('mastodon', function () {
 
                 return $this->hasMastodon();
-            }, array('article', 'note', 'image', 'bookmark', 'poll', 'media', 'rsvp', 'checkin', 'event'));
+            }, true);
 
             //array('note', 'article', 'image', 'media', 'rsvp', 'bookmark', 'like', 'share'));
 
