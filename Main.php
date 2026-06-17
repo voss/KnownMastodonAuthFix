@@ -44,25 +44,32 @@ namespace IdnoPlugins\Mastodon {
                     foreach($mastodon as $username => $details) {
                         if (!in_array($username, ['bearer','server','username'])) {
                             \Idno\Core\Idno::site()->syndication()->registerServiceAccount('mastodon', $username, $username);
+                            \Idno\Core\Idno::site()->logging()->log("Mastodon registered account (new format): " . $username);
                         }
                     }
 
                     if (array_key_exists('bearer', $mastodon)) {
-                        \Idno\Core\Idno::site()->syndication()->registerServiceAccount('mastodon', $mastodon['username'] . "@" . $mastodon['server'], $mastodon['username'] . "@" . $mastodon['server']);
+                        $masto_user = $mastodon['username'] . "@" . $mastodon['server'];
+                        \Idno\Core\Idno::site()->syndication()->registerServiceAccount('mastodon', $masto_user, $masto_user);
+                        \Idno\Core\Idno::site()->logging()->log("Mastodon registered account (old format): " . $masto_user);
                     }
                 }
+            } else {
+                \Idno\Core\Idno::site()->logging()->log("Mastodon: hasMastodon() returned false during registerAccounts()");
             }
         }
 
         function registerEventHooks() {
 
             \Idno\Core\Idno::site()->syndication()->registerService('mastodon', function () {
-                if ($this->hasMastodon()) {
+                $hasMasto = $this->hasMastodon();
+                \Idno\Core\Idno::site()->logging()->log("Mastodon service check: hasMastodon() = " . ($hasMasto ? 'true' : 'false'));
+                if ($hasMasto) {
                     $this->registerAccounts();
                     return true;
                 }
                 return false;
-            }, array('note', 'article', 'image', 'media', 'rsvp', 'bookmark', 'like', 'share', 'checkin', 'event', 'poll', 'Poll', 'audio'));
+            }, true);
 
             //\Idno\Core\Idno::site()->addEventHook('user/auth/success', function (\Idno\Core\Event $event) {
             \Idno\Core\Idno::site()->events()->addListener('user/auth/success', function (\Idno\Core\Event $event) {
