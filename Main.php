@@ -53,13 +53,21 @@ namespace IdnoPlugins\Mastodon {
 
         function registerEventHooks() {
 
-            \Idno\Core\Idno::site()->syndication()->registerService('mastodon', function () {
-                if ($this->hasMastodon()) {
-                    $this->registerAccounts();
-                    return true;
-                }
-                return false;
-            }, array('article', 'note', 'image', 'bookmark', 'poll', 'Poll', 'media', 'rsvp', 'checkin', 'event', 'audio'));
+            \Idno\Core\Idno::site()->events()->addListener('page/get', function (\Idno\Core\Event $event) {
+                $this->registerAccounts();
+            });
+            \Idno\Core\Idno::site()->events()->addListener('page/post', function (\Idno\Core\Event $event) {
+                $this->registerAccounts();
+            });
+
+            \Idno\Core\Idno::site()->events()->addListener('plugins/loaded', function () {
+                \Idno\Core\Idno::site()->syndication()->registerService('mastodon', function () {
+                    if ($this->hasMastodon()) {
+                        return true;
+                    }
+                    return false;
+                }, true);
+            });
 
             //array('note', 'article', 'image', 'media', 'rsvp', 'bookmark', 'like', 'share'));
 
