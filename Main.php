@@ -37,6 +37,9 @@ namespace IdnoPlugins\Mastodon {
         function registerAccounts() {
             if ($this->hasMastodon()) {
                 $mastodon = \Idno\Core\Idno::site()->session()->currentUser()->mastodon;
+                if (empty($mastodon)) {
+                    $mastodon = \Idno\Core\Idno::site()->session()->currentUser()->Mastodon;
+                }
                 if (is_array($mastodon)) {
                     foreach($mastodon as $username => $details) {
                         if (!in_array($username, ['bearer','server','username'])) {
@@ -736,6 +739,9 @@ namespace IdnoPlugins\Mastodon {
                 return false;
             }
             $mastodon = \Idno\Core\Idno::site()->session()->currentUser()->mastodon;
+            if (empty($mastodon)) {
+                $mastodon = \Idno\Core\Idno::site()->session()->currentUser()->Mastodon;
+            }
             if (!empty($mastodon)) {
                 if (is_array($mastodon)) {
                     // Check for old format
