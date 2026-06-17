@@ -34,8 +34,7 @@ namespace IdnoPlugins\Mastodon {
             // \Idno\Core\Idno::site()->template()->extendTemplate('onboarding/connect/networks', 'onboarding/connect/mastodon');
         }
 
-        function registerEventHooks() {
-
+        function registerAccounts() {
             if ($this->hasMastodon()) {
                 $mastodon = \Idno\Core\Idno::site()->session()->currentUser()->mastodon;
                 if (is_array($mastodon)) {
@@ -50,29 +49,24 @@ namespace IdnoPlugins\Mastodon {
                     }
                 }
             }
+        }
+
+        function registerEventHooks() {
 
             \Idno\Core\Idno::site()->syndication()->registerService('mastodon', function () {
-
-                return $this->hasMastodon();
-            }, true);
+                if ($this->hasMastodon()) {
+                    $this->registerAccounts();
+                    return true;
+                }
+                return false;
+            }, array('article', 'note', 'image', 'bookmark', 'poll', 'Poll', 'media', 'rsvp', 'checkin', 'event', 'audio'));
 
             //array('note', 'article', 'image', 'media', 'rsvp', 'bookmark', 'like', 'share'));
 
             //\Idno\Core\Idno::site()->addEventHook('user/auth/success', function (\Idno\Core\Event $event) {
             \Idno\Core\Idno::site()->events()->addListener('user/auth/success', function (\Idno\Core\Event $event) {
                 if ($this->hasMastodon()) {
-                    $mastodon = \Idno\Core\Idno::site()->session()->currentUser()->mastodon;
-                    if (is_array($mastodon)) {
-                        foreach($mastodon as $username => $details) {
-                            if (!in_array($username, ['bearer','server','username'])) {
-                                \Idno\Core\Idno::site()->syndication()->registerServiceAccount('mastodon', $username, $username);
-                            }
-                        }
-
-                        if (array_key_exists('bearer', $mastodon)) {
-                            \Idno\Core\Idno::site()->syndication()->registerServiceAccount('mastodon', $mastodon['username'] . "@" . $mastodon['server'], $mastodon['username'] . "@" . $mastodon['server']);
-                        }
-                    }
+                    $this->registerAccounts();
                 }
             });
 
